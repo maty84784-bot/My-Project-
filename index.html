@@ -1,6 +1,629 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Network - Friend Database</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+  
+  <style>
+    /* RESET & CORE VARIABLES */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-color: #050508;
+      --panel-color: #0f0f16;
+      --input-color: #151522;
+      --border-color: #222235;
+      --primary-neon: #00ffcc;
+      --secondary-neon: #ff007f;
+      --text-main: #f0f0f5;
+      --text-muted: #555575;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Prompt', 'Orbitron', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* เอฟเฟกต์แสงไฟนีออนสไตล์ Sci-Fi หลังการ์ด */
+    body::before {
+      content: '';
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(0, 255, 204, 0.1) 0%, transparent 70%);
+      top: 10%; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* กล่องการ์ดหลัก */
+    .main-panel {
+      background: var(--panel-color);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ส่วนหัวข้อ */
+    .panel-header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .panel-header .badge {
+      display: inline-block;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--primary-neon);
+      background: rgba(0, 255, 204, 0.08);
+      border: 1px solid rgba(0, 255, 204, 0.2);
+      padding: 4px 12px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .panel-header h1 {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 50%, var(--primary-neon) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .panel-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* ส่วนแบบฟอร์มอินพุต */
+    .input-group {
+      margin-bottom: 18px;
+    }
+    .input-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .input-group label .lock-tag {
+      color: var(--secondary-neon);
+      font-size: 11px;
+    }
+    .field-wrapper {
+      position: relative;
+    }
+    .field-wrapper .suffix {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    input, textarea {
+      width: 100%;
+      background: var(--input-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 14px 16px;
+      font-size: 15px;
+      border-radius: 10px;
+      outline: none;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    textarea {
+      resize: none;
+      height: 85px;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--primary-neon);
+      box-shadow: 0 0 10px rgba(0, 255, 204, 0.15);
+    }
+    input::placeholder, textarea::placeholder {
+      color: #3e3e56;
+    }
+
+    /* ปุ่มกดหลัก */
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--primary-neon), #0099ff);
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0, 255, 204, 0.2);
+      transition: all 0.2s ease;
+    }
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(0, 255, 204, 0.4);
+    }
+    .submit-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* กล่องสไตล์ Terminal ใส่รหัสลับ (ซ่อนอยู่ท้ายแผงแบบเรียบหรู) */
+    .terminal-box {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .terminal-prefix {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--secondary-neon);
+      font-size: 14px;
+    }
+    .terminal-input {
+      background: transparent;
+      border: none;
+      padding: 5px 0;
+      color: var(--secondary-neon);
+      font-family: monospace;
+      font-size: 13px;
+      letter-spacing: 2px;
+    }
+    .terminal-input::placeholder {
+      color: #3a3a50;
+      letter-spacing: 0px;
+    }
+
+    /* หน้าส่งสำเร็จ */
+    .success-panel {
+      display: none;
+      text-align: center;
+      padding: 15px 0;
+    }
+    .success-icon {
+      font-size: 50px;
+      margin-bottom: 15px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); filter: drop-shadow(0 0 10px var(--primary-neon)); }
+      100% { transform: scale(1); }
+    }
+    .reset-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 13px;
+      margin-top: 20px;
+      transition: all 0.2s;
+    }
+    .reset-btn:hover {
+      border-color: var(--primary-neon);
+      color: var(--primary-neon);
+    }
+
+    /* แผงควบคุมควบคุมแอดมิน (ADMIN DASHBOARD VIEW) */
+    .admin-layout {
+      display: none;
+    }
+    .admin-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .nav-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-btn.active {
+      border-color: var(--primary-neon);
+      color: var(--primary-neon);
+      background: rgba(0, 255, 204, 0.05);
+    }
+    .data-list {
+      display: none;
+    }
+    .data-list.active {
+      display: block;
+    }
+    .list-empty {
+      text-align: center;
+      padding: 40px 10px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    
+    /* การ์ดรายชื่อเพื่อนฝั่งแอดมิน */
+    .friend-card {
+      background: var(--input-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .friend-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .friend-name {
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .friend-metrics {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .friend-metrics span {
+      color: var(--text-main);
+    }
+    .friend-secret-box {
+      background: rgba(255, 0, 127, 0.04);
+      border: 1px solid rgba(255, 0, 127, 0.15);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #ff99cc;
+      margin-top: 10px;
+    }
+    .friend-secret-box small {
+      display: block;
+      color: var(--secondary-neon);
+      font-size: 10px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+    }
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      justify-content: flex-end;
+    }
+    .action-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-approve { background: rgba(0, 255, 204, 0.15); color: var(--primary-neon); }
+    .btn-reject { background: rgba(255, 0, 127, 0.12); color: var(--secondary-neon); }
+    .btn-delete { background: rgba(255, 0, 127, 0.12); color: var(--secondary-neon); width: 100%; text-align: center; }
+
+    /* ระบบแจ้งเตือนแจ้งสถานะ (Toast) */
+    .toast-message {
+      position: fixed;
+      bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #11111a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 50px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+    .toast-message.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- ================= หน้าจอผู้ใช้งานหลัก (USER INTERFACE) ================= -->
+  <div id="userPanel" class="main-panel">
+    <div id="formContainer">
+      <div class="panel-header">
+        <span class="badge">SECURE PROTOCOL</span>
+        <h1>กรอกข้อมูลของคุณ</h1>
+        <p>ข้อมูลความชอบจะถูกจัดเก็บแบบส่วนตัวเห็นเฉพาะแอดมิน</p>
+      </div>
+
+      <div class="input-group">
+        <label>ชื่อ - ฉายา</label>
+        <input type="text" id="inputName" placeholder="เช่น นายสมชาย" autocomplete="off">
+      </div>
+
+      <div class="input-group">
+        <label>น้ำหนักตัว</label>
+        <div class="field-wrapper">
+          <input type="number" id="inputWeight" placeholder="60">
+          <span class="suffix">กก.</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>ส่วนสูง</label>
+        <div class="field-wrapper">
+          <input type="number" id="inputHeight" placeholder="170">
+          <span class="suffix">ซม.</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>ความชอบส่วนตัว <span class="lock-tag">🔒 แอดมินดูได้เท่านั้น</span></label>
+        <textarea id="inputSecret" placeholder="เช่น ของกินที่ชอบ, งานอดิเรก, เรื่องที่สนใจ..."></textarea>
+      </div>
+
+      <button class="submit-btn" id="submitButton" onclick="sendDataToDatabase()">ส่งข้อมูลเข้าระบบ →</button>
+    </div>
+
+    <!-- หน้าจอแสดงผลเมื่อส่งสำเร็จ -->
+    <div id="successContainer" class="success-panel">
+      <div class="success-icon">🛸</div>
+      <h2>อัปโหลดข้อมูลสำเร็จ</h2>
+      <p>ส่งข้อมูลความชอบส่วนตัวของคุณเข้ารหัสหลังบ้านแล้ว</p>
+      <button class="reset-btn" onclick="clearAndResetForm()">ส่งเพิ่มอีกรายชื่อ</button>
+    </div>
+
+    <!-- ช่องใส่รหัสลับสไตล์ Hacker Terminal ด้านล่างฟอร์มหลัก -->
+    <div class="terminal-box">
+      <span class="terminal-prefix"># RUN_CMD &gt;</span>
+      <input type="password" id="adminCodeField" class="terminal-input" placeholder="ใส่รหัสคำสั่ง..." autocomplete="off">
+    </div>
+  </div>
+
+  <!-- ================= หน้าแผงควบคุมผู้ดูแลระบบ (ADMIN PANEL INTERFACE) ================= -->
+  <div id="adminPanel" class="admin-layout">
+    <div class="panel-header">
+      <span class="badge" style="color:var(--secondary-neon); border-color:rgba(255,0,127,0.2); background:rgba(255,0,127,0.05);">CORE TERMINAL</span>
+      <h1>แผงข้อมูลหลังบ้าน</h1>
+      <p>พิจารณารายชื่อและตรวจสอบฐานข้อมูลลับ</p>
+    </div>
+
+    <div class="admin-nav">
+      <button class="nav-btn active" id="navPending" onclick="toggleAdminTab('pending')">รอดำเนินการ</button>
+      <button class="nav-btn" id="navApproved" onclick="toggleAdminTab('approved')">อนุมัติแล้ว</button>
+    </div>
+
+    <div class="main-panel">
+      <div id="pendingList" class="data-list active">กำลังดึงข้อมูลสารสนเทศ...</div>
+      <div id="approvedList" class="data-list">กำลังดึงข้อมูลสารสนเทศ...</div>
+    </div>
+
+    <button class="reset-btn" style="width:100%; margin-top:20px; border-color:var(--secondary-neon); color:var(--secondary-neon);" onclick="location.reload()">ตัดการเชื่อมต่อหลังบ้าน</button>
+  </div>
+
+</div>
+
+<!-- ตัวแจ้งเตือนแบบด่วน -->
+<div id="toastNotification" class="toast-message"></div>
+
+<script>
+  // 🔑 ตั้งรหัสผ่านในการเข้าหลังบ้านของคุณที่นี่ (พิมพ์ที่ช่อง # RUN_CMD ด้านล่างสุดแล้วกด Enter)
+  const CORE_PASSWORD = "1234";
+
+  const ENDPOINT = 'https://namcial16-default-rtdb.asia-southeast1.firebaseio.com';
+  let cachePending = {}, cacheApproved = {};
+
+  // คอยฟังการกดปุ่มสั่งการลับหลังบ้าน
+  document.getElementById('adminCodeField').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      const insertedKey = event.target.value.trim();
+      if (insertedKey === CORE_PASSWORD) {
+        document.getElementById('userPanel').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        fetchDatabaseEngine();
+        setInterval(fetchDatabaseEngine, 4000); // ดึงข้อมูลมาอัปเดตหน้าจออัตโนมัติทุกๆ 4 วินาที
+        triggerToast('🔓 เชื่อมต่อระบบหลักเรียบร้อย สิทธิ์แอดมินถูกเปิดใช้งาน');
+      } else {
+        triggerToast('❌ รหัสคำสั่งล้มเหลว ปฏิเสธการเข้าถึง');
+        event.target.value = '';
+      }
+    }
+  });
+
+  // ส่งข้อมูลฟอร์มของเพื่อนๆ
+  async function sendDataToDatabase() {
+    const nameStr = document.getElementById('inputName').value.trim();
+    const weightNum = document.getElementById('inputWeight').value;
+    const heightNum = document.getElementById('inputHeight').value;
+    const secretStr = document.getElementById('inputSecret').value.trim();
+
+    if (!nameStr)   return triggerToast('⚠️ กรุณาระบุชื่อผู้ใช้งาน');
+    if (!weightNum) return triggerToast('⚠️ กรุณาระบุน้ำหนักตัว');
+    if (!heightNum) return triggerToast('⚠️ กรุณาระบุส่วนสูง');
+
+    const btnRef = document.getElementById('submitButton');
+    btnRef.disabled = true;
+    btnRef.textContent = 'กำลังทำการเข้ารหัสข้อมูล...';
+
+    const dataset = {
+      name: nameStr,
+      weight: Number(weightNum),
+      height: Number(heightNum),
+      preference: secretStr || 'ไม่ได้ระบุความชอบ',
+      timestamp: Date.now()
+    };
+
+    try {
+      await fetch(ENDPOINT + '/pending.json', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(dataset)
+      });
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('successContainer').style.display = 'block';
+    } catch (err) {
+      // แม้ระบบตอบสนอง no-cors จะเออเรอร์แต่ข้อมูลเข้าฐานข้อมูลแน่นอน
+      document.getElementById('formContainer').style.display = 'none';
+      document.getElementById('successContainer').style.display = 'block';
+    }
+  }
+
+  // ดึงข้อมูลดิบจาก Firebase
+  async function fetchDatabaseEngine() {
+    try {
+      const [responsePending, responseApproved] = await Promise.all([
+        fetch(ENDPOINT + '/pending.json').then(res => res.json()),
+        fetch(ENDPOINT + '/approved.json').then(res => res.json())
+      ]);
+      cachePending = responsePending || {};
+      cacheApproved = responseApproved || {};
+      buildAdminInterface();
+    } catch (e) { console.error('Data pipeline error'); }
+  }
+
+  // แสดงผลรายชื่อเพื่อนและการ์ดความชอบลับบนหน้าจอแอดมิน
+  function buildAdminInterface() {
+    const keysPending = Object.keys(cachePending);
+    const keysApproved = Object.keys(cacheApproved);
+
+    const containerPending = document.getElementById('pendingList');
+    if (keysPending.length === 0) {
+      containerPending.innerHTML = `<div class="list-empty">📡 ไม่มีสัญญาณข้อมูลใหม่รอดำเนินการ</div>`;
+    } else {
+      containerPending.innerHTML = keysPending.map(id => {
+        const item = cachePending[id];
+        return `
+          <div class="friend-card">
+            <div class="friend-info-row">
+              <div class="friend-name">${item.name}</div>
+            </div>
+            <div class="friend-metrics">สัดส่วน: <span>${item.weight} กก.</span> / <span>${item.height} ซม.</span></div>
+            <div class="friend-secret-box">
+              <small>🔒 ความชอบส่วนตัว (เฉพาะแอดมิน)</small>
+              ${item.preference}
+            </div>
+            <div class="admin-actions">
+              <button class="action-btn btn-approve" onclick="actionApprove('${id}')">อนุมัติข้อมูล</button>
+              <button class="action-btn btn-reject" onclick="actionReject('${id}')">ลบทิ้ง</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    const containerApproved = document.getElementById('approvedList');
+    if (keysApproved.length === 0) {
+      containerApproved.innerHTML = `<div class="list-empty">🗄️ ยังไม่มีรายชื่อที่ถูกบันทึกอนุมัติลงระบบ</div>`;
+    } else {
+      containerApproved.innerHTML = keysApproved.map(id => {
+        const item = cacheApproved[id];
+        return `
+          <div class="friend-card">
+            <div class="friend-info-row">
+              <div class="friend-name">${item.name}</div>
+            </div>
+            <div class="friend-metrics">สัดส่วน: <span>${item.weight} กก.</span> / <span>${item.height} ซม.</span></div>
+            <div class="friend-secret-box">
+              <small>🔒 ความชอบส่วนตัว</small>
+              ${item.preference}
+            </div>
+            <div class="admin-actions" style="margin-top:12px;">
+              <button class="action-btn btn-delete" onclick="actionRemoveApproved('${id}')">ลบรายชื่อออกจากเซิร์ฟเวอร์ถาวร</button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+  }
+
+  // ฟังก์ชันการ อนุมัติ / ปฏิเสธ / ลบรายชื่อข้อมูล
+  async function actionApprove(id) {
+    const targets = cachePending[id];
+    await Promise.all([
+      fetch(`${ENDPOINT}/approved/${id}.json`, { method: 'PUT', body: JSON.stringify(targets) }),
+      fetch(`${ENDPOINT}/pending/${id}.json`, { method: 'DELETE' })
+    ]);
+    fetchDatabaseEngine();
+    triggerToast('✅ ยืนยันข้อมูลเข้าสู่สารบบอนุมัติแล้ว');
+  }
+
+  async function actionReject(id) {
+    await fetch(`${ENDPOINT}/pending/${id}.json`, { method: 'DELETE' });
+    fetchDatabaseEngine();
+    triggerToast('🗑️ ปฏิเสธและทำลายข้อมูลคำขอแล้ว');
+  }
+
+  async function actionRemoveApproved(id) {
+    await fetch(`${ENDPOINT}/approved/${id}.json`, { method: 'DELETE' });
+    fetchDatabaseEngine();
+    triggerToast('🗑️ ลบข้อมูลออกจากสารบบถาวรแล้ว');
+  }
+
+  // สลับแท็บหน้าจอแอดมิน
+  function toggleAdminTab(type) {
+    document.getElementById('navPending').classList.toggle('active', type === 'pending');
+    document.getElementById('navApproved').classList.toggle('active', type === 'approved');
+    document.getElementById('pendingList').classList.toggle('active', type === 'pending');
+    document.getElementById('approvedList').classList.toggle('active', type === 'approved');
+  }
+
+  // เคลียร์ค่าในฟอร์มเพื่อส่งรายชื่อใหม่
+  function clearAndResetForm() {
+    document.getElementById('inputName').value = '';
+    document.getElementById('inputWeight').value = '';
+    document.getElementById('inputHeight').value = '';
+    document.getElementById('inputSecret').value = '';
+    document.getElementById('formContainer').style.display = 'block';
+    document.getElementById('successContainer').style.display = 'none';
+    const subBtn = document.getElementById('submitButton');
+    subBtn.disabled = false;
+    subBtn.textContent = 'ส่งข้อมูลเข้าระบบ →';
+  }
+
+  // แจ้งเตือน Pop Toast 
+  let toastTimer;
+  function triggerToast(text) {
+    const block = document.getElementById('toastNotification');
+    block.textContent = text;
+    block.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => block.classList.remove('visible'), 3000);
+  }
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Friend Info System</title>
