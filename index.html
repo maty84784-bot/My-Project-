@@ -3,6 +3,401 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Friend Info System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #06060a; --surface: #0b0b11; --border: #161622;
+      --accent: #7c6cfc; --accent2: #fc6cc8; --text: #f1f1f7;
+      --muted: #4e4e6a; --card: #101016;
+      --green: #50fa7b; --red: #ff5555;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk','Noto Sans Thai',sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 40px 16px 80px; overflow-x: hidden;
+    }
+    /* เอฟเฟกต์แสงไฟนีออนด้านหลังเพื่อความเท่ */
+    body::before {
+      content: ''; position: fixed; top: -150px; left: 50%;
+      transform: translateX(-50%); width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(124,108,252,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .wrapper { position: relative; z-index: 1; width: 100%; max-width: 460px; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent);
+      background: rgba(124,108,252,0.08); border: 1px solid rgba(124,108,252,0.2);
+      padding: 6px 16px; border-radius: 100px; margin-bottom: 16px;
+    }
+    .tag.admin-tag { color: var(--accent2); background: rgba(252,108,200,0.08); border-color: rgba(252,108,200,0.2); }
+    h1 {
+      font-size: clamp(24px, 5vw, 32px); font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 40%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+    .header p { font-size: 13px; color: var(--muted); }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .field { margin-bottom: 20px; }
+    label {
+      display: flex; justify-content: space-between; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    label span.lock-text { color: var(--accent2); font-size: 10px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+    .input-wrap { position: relative; }
+    .unit {
+      position: absolute; right: 16px; top: 50%;
+      transform: translateY(-50%); font-size: 13px;
+      color: var(--muted); pointer-events: none; font-weight: 500;
+    }
+    input, textarea {
+      width: 100%; background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 14px 16px; font-size: 15px; font-family: inherit;
+      color: var(--text); outline: none; transition: all 0.2s ease;
+    }
+    textarea { resize: none; height: 90px; }
+    input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(124,108,252,0.1); }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    
+    .btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 14px; color: #fff;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; margin-top: 10px; box-shadow: 0 4px 15px rgba(124,108,252,0.2);
+      transition: all 0.2s ease;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+    .btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,108,252,0.3); }
+    .btn:not(:disabled):active { transform: translateY(1px); }
+    
+    /* หน้าจอแผงแอดมินหลังบ้าน */
+    #adminView { display: none; width: 100%; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+    .tab {
+      flex: 1; padding: 12px; border-radius: 100px; font-size: 13px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+      border: 1.5px solid var(--border); background: none;
+      color: var(--muted); transition: all 0.2s ease; text-align: center;
+    }
+    .tab.active { background: rgba(124,108,252,0.1); border-color: var(--accent); color: var(--accent); }
+    .section { display: none; }
+    .section.active { display: block; }
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+    .card-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 18px; margin-bottom: 12px;
+    }
+    .item-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .item-header .name { font-weight: 600; font-size: 16px; color: #fff; }
+    .item-meta { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .item-meta span { color: var(--text); font-weight: 500; }
+    .item-pref {
+      background: rgba(252,108,200,0.05); border: 1px dashed rgba(252,108,200,0.15);
+      border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #e2a9ce; margin-bottom: 14px;
+    }
+    .item-pref-title { font-size: 11px; font-weight: 700; color: var(--accent2); text-transform: uppercase; margin-bottom: 4px; }
+    
+    .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .approve-btn, .reject-btn, .delete-btn {
+      border: none; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .approve-btn { background: rgba(80,250,123,0.12); color: var(--green); }
+    .approve-btn:hover { background: rgba(80,250,123,0.2); }
+    .reject-btn { background: rgba(255,85,85,0.1); color: var(--red); }
+    .reject-btn:hover { background: rgba(255,85,85,0.18); }
+    .delete-btn { background: rgba(255,85,85,0.1); color: var(--red); width: 100%; text-align: center; }
+
+    /* หน้าจอส่งฟอร์มสำเร็จ */
+    .success { display: none; text-align: center; padding: 20px 10px; }
+    .success .icon { font-size: 54px; margin-bottom: 16px; filter: drop-shadow(0 4px 10px rgba(80,250,123,0.3)); }
+    .success h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+    .success p { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+    .again-btn {
+      background: none; border: 1.5px solid var(--border); color: var(--muted); 
+      border-radius: 12px; padding: 12px 28px; font-family: inherit; font-size: 14px; 
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .again-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,108,252,0.05); }
+
+    /* บาร์คำสั่งลับสไตล์ Terminal ท้ายเว็บ */
+    .console-zone {
+      margin-top: 24px; background: rgba(16,16,22,0.6); border: 1px solid var(--border);
+      border-radius: 14px; padding: 10px 14px; display: flex; gap: 10px; align-items: center;
+    }
+    .console-prompt { font-family: monospace; font-size: 14px; color: var(--accent); font-weight: 700; }
+    .console-input {
+      flex: 1; padding: 4px 0; font-size: 13px; background: none; border: none; color: var(--accent);
+      font-family: monospace; outline: none;
+    }
+    .console-input::placeholder { color: rgba(78,78,106,0.5); }
+
+    /* กล่องแจ้งเตือนมุมจอ */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #12121a; border: 1px solid var(--border); color: var(--text);
+      font-size: 13px; font-weight: 500; padding: 12px 24px; border-radius: 100px; opacity: 0;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; z-index: 100;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  
+  <div id="userView">
+    <div class="header">
+      <div class="tag">System Online</div>
+      <h1>กรอกข้อมูลของคุณ</h1>
+      <p>ข้อมูลความชอบจะเห็นได้เฉพาะคุณและ Admin เท่านั้นครับ</p>
+    </div>
+    <div class="card">
+      <div id="formSection">
+        <div class="field">
+          <label>ชื่อ-นามแฝง</label>
+          <div class="input-wrap">
+            <input type="text" id="name" placeholder="เช่น นายสมชาย" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field">
+          <label>น้ำหนักตัว</label>
+          <div class="input-wrap">
+            <input type="number" id="weight" placeholder="60" />
+            <span class="unit">กก.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>ส่วนสูง</label>
+          <div class="input-wrap">
+            <input type="number" id="height" placeholder="175" />
+            <span class="unit">ซม.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>ความชอบส่วนตัว <span class="lock-text">🔒 อนุมัติเห็นเฉพาะแอดมิน</span></label>
+          <div class="input-wrap">
+            <textarea id="preference" placeholder="เช่น ชอบกินชาบู, ชอบเล่นเกมแนว FPS, งานอดิเรกวาดรูป..."></textarea>
+          </div>
+        </div>
+        <button class="btn" id="submitBtn" onclick="submitForm()">ส่งข้อมูลเข้าระบบ →</button>
+      </div>
+      
+      <div class="success" id="successSection">
+        <div class="icon">✨</div>
+        <h2>บันทึกข้อมูลสำเร็จ!</h2>
+        <p>ส่งข้อมูลความชอบส่วนตัวของคุณให้แอดมินเก็บไว้เรียบร้อย</p>
+        <button class="again-btn" onclick="resetForm()">เพิ่มรายชื่ออื่น</button>
+      </div>
+    </div>
+
+    <div class="console-zone">
+      <span class="console-prompt">&gt;_</span>
+      <input type="password" id="consoleCmd" class="console-input" placeholder="run command code..." />
+    </div>
+  </div>
+
+  <div id="adminView">
+    <div class="header">
+      <div class="tag admin-tag">System Terminal</div>
+      <h1>แผงควบคุมหลัก</h1>
+      <p>อ่านความชอบส่วนตัวและคัดกรองรายชื่อเพื่อน</p>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-p" onclick="switchTab('pending')">รอยืนยัน</button>
+      <button class="tab" id="tab-a" onclick="switchTab('approved')">อนุมัติแล้ว</button>
+    </div>
+    <div class="card">
+      <div class="section active" id="pendingSection">กำลังดาวน์โหลดข้อมูล...</div>
+      <div class="section" id="approvedSection">กำลังดาวน์โหลดข้อมูล...</div>
+    </div>
+    <button class="again-btn" style="width:100%; margin-top:20px; border-color:var(--red); color:var(--red);" onclick="location.reload()">ปิดระบบคุมหลังบ้าน</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // 🔑 ตั้งรหัสผ่านของคุณตรงนี้ (พิมพ์ช่องสี่เหลี่ยมยาวท้ายเว็บล่างสุดแล้วกด Enter ได้เลย)
+  const TERMINAL_PASSWORD = "1234"; 
+  
+  const DB = 'https://namcial16-default-rtdb.asia-southeast1.firebaseio.com';
+  let pendingData = {}, approvedData = {};
+
+  // ระบบตรวจสอบคำสั่งคีย์ลับท้ายเว็บ
+  document.getElementById('consoleCmd').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = e.target.value.trim();
+      if (val === TERMINAL_PASSWORD) {
+        document.getElementById('userView').style.display = 'none';
+        document.getElementById('adminView').style.display = 'block';
+        loadAdminData();
+        setInterval(loadAdminData, 4000); // ดึงอัปเดตข้อมูลอัตโนมัติทุกๆ 4 วินาที
+        toast('🔓 ยืนยันสิทธิ์แอดมิน เข้าถึงแฟ้มข้อมูลลับแล้ว');
+      } else {
+        toast('❌ คำสั่งล้มเหลว: รหัสผ่านไม่ถูกต้อง');
+        e.target.value = '';
+      }
+    }
+  });
+
+  // ส่งฟอร์มข้อมูลของคนทั่วไป
+  async function submitForm() {
+    const name   = document.getElementById('name').value.trim();
+    const weight = document.getElementById('weight').value;
+    const height = document.getElementById('height').value;
+    const pref   = document.getElementById('preference').value.trim();
+
+    if (!name)   return toast('⚠️ โปรดระบุชื่อ');
+    if (!weight) return toast('⚠️ โปรดระบุน้ำหนัก');
+    if (!height) return toast('⚠️ โปรดระบุส่วนสูง');
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'กำลังอัปโหลดข้อมูล...';
+
+    try {
+      await fetch(DB + '/pending.json', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ name, weight: +weight, height: +height, preference: pref || 'ไม่ได้ระบุ', time: Date.now() })
+      });
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successSection').style.display = 'block';
+    } catch(e) {
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successSection').style.display = 'block';
+    }
+  }
+
+  // เรียกข้อมูลระบบขึ้นแสดงบนแผงแอดมิน
+  async function loadAdminData() {
+    try {
+      const [p, a] = await Promise.all([
+        fetch(DB + '/pending.json').then(r => r.json()),
+        fetch(DB + '/approved.json').then(r => r.json())
+      ]);
+      pendingData  = p  || {};
+      approvedData = a || {};
+      renderAdmin();
+    } catch(e) { console.log('Fetch DB Error'); }
+  }
+
+  // ประกอบการ์ดรายชื่อเพื่อนฝั่งหลังบ้าน
+  function renderAdmin() {
+    const pKeys = Object.keys(pendingData);
+    const aKeys = Object.keys(approvedData);
+
+    const pSec = document.getElementById('pendingSection');
+    if (pKeys.length === 0) {
+      pSec.innerHTML = `<div class="empty">🎉 ไม่มีข้อมูลผู้ใช้ใหม่ส่งเข้ามา</div>`;
+    } else {
+      pSec.innerHTML = pKeys.map(k => {
+        const e = pendingData[k];
+        return `<div class="card-item">
+          <div class="item-header">
+            <div class="name">${e.name}</div>
+          </div>
+          <div class="item-meta">สัดส่วน: <span>${e.weight} กก.</span> / <span>${e.height} ซม.</span></div>
+          <div class="item-pref">
+            <div class="item-pref-title">🔒 ความชอบส่วนตัว (เห็นเฉพาะคุณ)</div>
+            <div>${e.preference}</div>
+          </div>
+          <div class="actions">
+            <button class="approve-btn" onclick="approve('${k}')">อนุมัติระบบ</button>
+            <button class="reject-btn" onclick="reject('${k}')">ปฏิเสธ</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    const aSec = document.getElementById('approvedSection');
+    if (aKeys.length === 0) {
+      aSec.innerHTML = `<div class="empty">📋 ยังไม่มีรายชื่อที่ถูกกดยืนยัน</div>`;
+    } else {
+      aSec.innerHTML = aKeys.map(k => {
+        const e = approvedData[k];
+        return `<div class="card-item">
+          <div class="item-header">
+            <div class="name">${e.name}</div>
+          </div>
+          <div class="item-meta">สัดส่วน: <span>${e.weight} กก.</span> / <span>${e.height} ซม.</span></div>
+          <div class="item-pref">
+            <div class="item-pref-title">🔒 ความชอบส่วนตัว</div>
+            <div>${e.preference}</div>
+          </div>
+          <button class="delete-btn" onclick="deleteApproved('${k}')">ลบรายชื่อออกจากระบบ</button>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // กดสลับกลุ่มอนุมัติ
+  async function approve(key) {
+    const entry = pendingData[key];
+    await Promise.all([
+      fetch(DB + '/approved/' + key + '.json', { method: 'PUT', body: JSON.stringify(entry) }),
+      fetch(DB + '/pending/'  + key + '.json', { method: 'DELETE' })
+    ]);
+    loadAdminData();
+    toast('✅ ย้ายรายชื่อเข้าทำเนียบข้อมูลแล้ว');
+  }
+
+  async function reject(key) {
+    await fetch(DB + '/pending/' + key + '.json', { method: 'DELETE' });
+    loadAdminData();
+    toast('🗑️ ลบคำขอรายชื่อทิ้งแล้ว');
+  }
+
+  async function deleteApproved(key) {
+    await fetch(DB + '/approved/' + key + '.json', { method: 'DELETE' });
+    loadAdminData();
+    toast('🗑️ ลบรายชื่อออกจากฐานข้อมูลถาวรแล้ว');
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tab-p').classList.toggle('active', tab==='pending');
+    document.getElementById('tab-a').classList.toggle('active', tab==='approved');
+    document.getElementById('pendingSection').classList.toggle('active', tab==='pending');
+    document.getElementById('approvedSection').classList.toggle('active', tab==='approved');
+  }
+
+  function resetForm() {
+    document.getElementById('name').value = '';
+    document.getElementById('weight').value = '';
+    document.getElementById('height').value = '';
+    document.getElementById('preference').value = '';
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('successSection').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').textContent = 'ส่งข้อมูลเข้าระบบ →';
+  }
+
+  let t;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>กรอกข้อมูล</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
