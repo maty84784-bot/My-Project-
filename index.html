@@ -3,6 +3,358 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบข้อมูลเพื่อน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e;
+      --accent: #7c6cfc; --accent2: #fc6cc8; --text: #e8e8f0;
+      --muted: #5a5a78; --card: #16161f;
+      --green: #6cfca0; --red: #fc6c6c;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Space Grotesk','Noto Sans Thai',sans-serif;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; padding: 40px 16px 80px;
+    }
+    body::before {
+      content: ''; position: fixed; top: -200px; left: 50%;
+      transform: translateX(-50%); width: 600px; height: 600px;
+      background: radial-gradient(ellipse, rgba(124,108,252,0.15) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .wrapper { position: relative; z-index: 1; width: 100%; max-width: 480px; }
+    .header { text-align: center; margin-bottom: 36px; }
+    .tag {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+      background: rgba(124,108,252,0.1); border: 1px solid rgba(124,108,252,0.25);
+      padding: 4px 12px; border-radius: 100px; margin-bottom: 16px;
+    }
+    .tag.admin-tag { color: var(--accent2); background: rgba(252,108,200,0.1); border-color: rgba(252,108,200,0.25); }
+    h1 {
+      font-size: clamp(26px,6vw,36px); font-weight: 700;
+      background: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+    .header p { font-size: 14px; color: var(--muted); }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px;
+    }
+    .field { margin-bottom: 20px; }
+    label {
+      display: block; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+    .input-wrap { position: relative; }
+    .unit {
+      position: absolute; right: 14px; top: 50%;
+      transform: translateY(-50%); font-size: 13px;
+      color: var(--muted); pointer-events: none;
+    }
+    input {
+      width: 100%; background: var(--surface);
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 13px 16px; font-size: 16px; font-family: inherit;
+      color: var(--text); outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,108,252,0.15); }
+    input::placeholder { color: var(--muted); }
+    .btn {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: 14px; color: #fff;
+      font-size: 15px; font-weight: 600; font-family: inherit;
+      cursor: pointer; margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:not(:disabled):active { transform: scale(0.98); }
+    
+    /* สไตล์ส่วนของความสำเร็จ */
+    .success { display: none; text-align: center; padding: 32px 20px; }
+    .success .icon { font-size: 48px; margin-bottom: 12px; }
+    .success h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+    .success p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+    .again-btn {
+      background: none; border: 1.5px solid var(--accent);
+      color: var(--accent); border-radius: 12px; padding: 10px 24px;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .again-btn:hover { background: rgba(124,108,252,0.1); }
+    
+    /* สไตล์ส่วนของ Admin */
+    #adminView { display: none; width: 100%; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab {
+      flex: 1; padding: 10px; border-radius: 100px; font-size: 13px;
+      font-weight: 600; font-family: inherit; cursor: pointer;
+      border: 1.5px solid var(--border); background: none;
+      color: var(--muted); transition: all 0.2s; text-align: center;
+    }
+    .tab.active { background: rgba(124,108,252,0.15); border-color: var(--accent); color: var(--accent); }
+    .section { display: none; }
+    .section.active { display: block; }
+    .empty { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+    .card-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .info .name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+    .info .meta { font-size: 13px; color: var(--muted); }
+    .info .meta span { color: var(--text); }
+    .actions { display: flex; gap: 6px; }
+    .approve-btn, .reject-btn, .delete-btn {
+      border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .approve-btn { background: rgba(108,252,160,0.15); color: var(--green); }
+    .reject-btn { background: rgba(252,108,108,0.12); color: var(--red); }
+    .delete-btn { background: rgba(252,108,108,0.12); color: var(--red); }
+
+    .toast {
+      position: fixed; bottom: 32px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--card); border: 1px solid #fc6c6c;
+      color: var(--text); font-size: 14px; padding: 12px 20px;
+      border-radius: 100px; opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none; white-space: nowrap; z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  
+  <!-- ================= ฝั่งหน้า FORM ผู้ใช้งานทั่วไป ================= -->
+  <div id="userView">
+    <div class="header">
+      <div class="tag">Friend Info</div>
+      <h1>กรอกข้อมูลของคุณ</h1>
+      <p>ข้อมูลจะถูกส่งให้ Admin ตรวจสอบก่อนนะครับ</p>
+    </div>
+    <div class="card">
+      <div id="formSection">
+        <div class="field">
+          <label>ชื่อ</label>
+          <div class="input-wrap">
+            <input type="text" id="name" placeholder="เช่น สมชาย (พิมพ์รหัสผ่านเพื่อเข้า Admin)" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field">
+          <label>น้ำหนัก</label>
+          <div class="input-wrap">
+            <input type="number" id="weight" placeholder="60" />
+            <span class="unit">กก.</span>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>ส่วนสูง</label>
+          <div class="input-wrap">
+            <input type="number" id="height" placeholder="170" />
+            <span class="unit">ซม.</span>
+          </div>
+        </div>
+        <button class="btn" id="submitBtn" onclick="submitForm()">ส่งข้อมูล →</button>
+      </div>
+      <div class="success" id="successSection">
+        <div class="icon">✅</div>
+        <h2>ส่งข้อมูลแล้ว!</h2>
+        <p>Admin จะตรวจสอบและอนุมัติให้เร็วๆ นี้</p>
+        <button class="again-btn" onclick="resetForm()">ส่งอีกคน</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ฝั่งหน้า ADMIN PANEL (ซ่อนไว้ก่อน) ================= -->
+  <div id="adminView">
+    <div class="header">
+      <div class="tag admin-tag">Admin Panel</div>
+      <h1>ผู้ดูแลระบบ</h1>
+      <p>จัดการข้อมูลอนุมัติหรือปฏิเสธรายชื่อเพื่อน</p>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-p" onclick="switchTab('pending')">รออนุมัติ</button>
+      <button class="tab" id="tab-a" onclick="switchTab('approved')">อนุมัติแล้ว</button>
+    </div>
+    <div class="card">
+      <div class="section active" id="pendingSection">กำลังโหลดข้อมูล...</div>
+      <div class="section" id="approvedSection">กำลังโหลดข้อมูล...</div>
+    </div>
+    <button class="again-btn" style="width:100%; margin-top:15px;" onclick="location.reload()">ออกจากหน้า Admin</button>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // กำหนดรหัสผ่านลับของคุณตรงนี้ (เวลาจะเข้าหน้า Admin ให้พิมพ์คำนี้ในช่องชื่อ)
+  const ADMIN_PASSWORD = "admin"; 
+  
+  // บัญชีจัดเก็บข้อมูลของคุณอ้างอิงจากฐานข้อมูลเดิม
+  const DB = 'https://namcial16-default-rtdb.asia-southeast1.firebaseio.com';
+  let pendingData = {}, approvedData = {};
+
+  // ฟังก์ชันส่งฟอร์มของผู้ใช้ทั่วไป
+  async function submitForm() {
+    const name   = document.getElementById('name').value.trim();
+    const weight = document.getElementById('weight').value;
+    const height = document.getElementById('height').value;
+
+    // ระบบทางลัดตรวจสอบเพื่อล็อกอินเข้าหน้า Admin
+    if (name === ADMIN_PASSWORD) {
+      document.getElementById('userView').style.display = 'none';
+      document.getElementById('adminView').style.display = 'block';
+      loadAdminData();
+      setInterval(loadAdminData, 4000); // อัปเดตข้อมูลทุกๆ 4 วินาทีอัตโนมัติ
+      return toast('🔓 ยินดีต้อนรับเข้าสู่ระบบ Admin');
+    }
+
+    if (!name)   return toast('⚠️ กรุณาใส่ชื่อ');
+    if (!weight) return toast('⚠️ กรุณาใส่น้ำหนัก');
+    if (!height) return toast('⚠️ กรุณาใส่ส่วนสูง');
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+
+    try {
+      // ใช้สไตล์ส่งตรงที่ยอมข้ามผ่านระบบ Rules หลังบ้าน
+      await fetch(DB + '/pending.json', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ name, weight: +weight, height: +height, time: Date.now() })
+      });
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successSection').style.display = 'block';
+    } catch(e) {
+      // ป้องกันการเออเร่อค้างหน้าเดิม
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('successSection').style.display = 'block';
+    }
+  }
+
+  // ฟังก์ชันดึงและโหลดข้อมูลของ Admin
+  async function loadAdminData() {
+    try {
+      const [p, a] = await Promise.all([
+        fetch(DB + '/pending.json').then(r => r.json()),
+        fetch(DB + '/approved.json').then(r => r.json())
+      ]);
+      pendingData  = p  || {};
+      approvedData = a || {};
+      renderAdmin();
+    } catch(e) { console.log('โหลดข้อมููลผิดพลาด'); }
+  }
+
+  // ฟังก์ชันแสดงรายชื่อหลังบ้านของหน้า Admin
+  function renderAdmin() {
+    const pKeys = Object.keys(pendingData);
+    const aKeys = Object.keys(approvedData);
+
+    // ฝั่งรายการรออนุมัติ
+    const pSec = document.getElementById('pendingSection');
+    if (pKeys.length === 0) {
+      pSec.innerHTML = `<div class="empty">🎉 ไม่มีรายการรออนุมัติ</div>`;
+    } else {
+      pSec.innerHTML = pKeys.map(k => {
+        const e = pendingData[k];
+        return `<div class="card-item">
+          <div class="info">
+            <div class="name">${e.name}</div>
+            <div class="meta"><span>${e.weight} กก.</span> / <span>${e.height} ซม.</span></div>
+          </div>
+          <div class="actions">
+            <button class="approve-btn" onclick="approve('${k}')">✅</button>
+            <button class="reject-btn" onclick="reject('${k}')">❌</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ฝั่งรายการที่อนุมัติแล้ว
+    const aSec = document.getElementById('approvedSection');
+    if (aKeys.length === 0) {
+      aSec.innerHTML = `<div class="empty">📋 ยังไม่มีรายชื่อที่อนุมัติ</div>`;
+    } else {
+      aSec.innerHTML = aKeys.map(k => {
+        const e = approvedData[k];
+        return `<div class="card-item">
+          <div class="info">
+            <div class="name">${e.name}</div>
+            <div class="meta"><span>${e.weight} กก.</span> / <span>${e.height} ซม.</span></div>
+          </div>
+          <button class="delete-btn" onclick="deleteApproved('${k}')">ลบ</button>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ปุ่มกดอนุมัติ
+  async function approve(key) {
+    const entry = pendingData[key];
+    await Promise.all([
+      fetch(DB + '/approved/' + key + '.json', { method: 'PUT', body: JSON.stringify(entry) }),
+      fetch(DB + '/pending/'  + key + '.json', { method: 'DELETE' })
+    ]);
+    loadAdminData();
+    toast('✅ อนุมัติรายชื่อเรียบร้อย');
+  }
+
+  // ปุ่มกดปฏิเสธ
+  async function reject(key) {
+    await fetch(DB + '/pending/' + key + '.json', { method: 'DELETE' });
+    loadAdminData();
+    toast('🗑️ ปฏิเสธรายการแล้ว');
+  }
+
+  // ปุ่มกดลบข้อมูลที่เคยอนุมัติ
+  async function deleteApproved(key) {
+    await fetch(DB + '/approved/' + key + '.json', { method: 'DELETE' });
+    loadAdminData();
+    toast('🗑️ ลบข้อมูลเรียบร้อย');
+  }
+
+  // สลับแท็บหน้าจอ Admin
+  function switchTab(tab) {
+    document.getElementById('tab-p').classList.toggle('active', tab==='pending');
+    document.getElementById('tab-a').classList.toggle('active', tab==='approved');
+    document.getElementById('pendingSection').classList.toggle('active', tab==='pending');
+    document.getElementById('approvedSection').classList.toggle('active', tab==='approved');
+  }
+
+  function resetForm() {
+    document.getElementById('name').value = '';
+    document.getElementById('weight').value = '';
+    document.getElementById('height').value = '';
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('successSection').style.display = 'none';
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').textContent = 'ส่งข้อมูล →';
+  }
+
+  let t;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(t); t = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>กรอกข้อมูล</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
